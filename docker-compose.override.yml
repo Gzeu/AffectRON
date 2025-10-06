@@ -1,0 +1,22 @@
+version: '3.8'
+
+# Development overrides for docker-compose.yml
+# This file is automatically merged with docker-compose.yml
+
+services:
+  api:
+    environment:
+      - DEBUG=true
+      - HOT_RELOAD=true
+    volumes:
+      - ./src:/app/src
+      - ./models:/app/models
+    command: uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload --log-level debug
+
+  dashboard:
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    volumes:
+      - ./src/dashboard/src:/app/src
+      - ./src/dashboard/public:/app/public
+    command: npm start

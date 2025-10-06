@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: affectron-dashboard
+  labels:
+    app: affectron-dashboard
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: affectron-dashboard
+  template:
+    metadata:
+      labels:
+        app: affectron-dashboard
+    spec:
+      containers:
+      - name: dashboard
+        image: affectron/dashboard:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: REACT_APP_API_URL
+          value: "http://affectron-api-service:8000"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: affectron-dashboard-service
+spec:
+  selector:
+    app: affectron-dashboard
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+  type: ClusterIP
