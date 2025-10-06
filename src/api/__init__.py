@@ -13,6 +13,10 @@ from .models import (
 )
 from .services import SentimentService, MarketService, AnalyticsService, DataProcessingService
 from .websocket import ConnectionManager
+from .enhanced_websocket import (
+    EnhancedConnectionManager, MessageType, SubscriptionType,
+    WebSocketMessage as EnhancedWebSocketMessage, UserSubscription
+)
 
 __all__ = [
     'app',
@@ -35,5 +39,10 @@ __all__ = [
     'MarketService',
     'AnalyticsService',
     'DataProcessingService',
-    'ConnectionManager'
+    'ConnectionManager',
+    'EnhancedConnectionManager',
+    'MessageType',
+    'SubscriptionType',
+    'EnhancedWebSocketMessage',
+    'UserSubscription'
 ]

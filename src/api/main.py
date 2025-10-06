@@ -21,7 +21,8 @@ from .database import engine, get_db
 from .models import Base
 from .auth import verify_token
 from .routes import router as api_router
-from .websocket import ConnectionManager
+from .market_data_streamer import market_streamer, start_market_data_streaming, stop_market_data_streaming
+from .multi_region_deployment import multi_region_manager, initialize_multi_region_deployment, get_multi_region_status
 
 
 # Configure logging
@@ -33,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 # Global connection manager for WebSocket connections
 manager = ConnectionManager()
+enhanced_manager = connection_manager
 
 
 @asynccontextmanager
@@ -44,13 +46,41 @@ async def lifespan(app: FastAPI):
     # Create database tables
     Base.metadata.create_all(bind=engine)
 
+    # Initialize multi-region deployment
+    await initialize_multi_region_deployment()
+
+    # Initialize marketplace
+    await initialize_marketplace()
+
+    # Initialize plugin system
+    await initialize_plugin_system()
+
+    # Initialize trading platforms
+    await initialize_trading_platforms()
+
+    # Start alert engine
+    await start_alert_engine()
+
+    # Start market data streaming
+    await start_market_data_streaming()
+
     # Initialize background tasks
     asyncio.create_task(start_background_tasks())
+
+    # Start WebSocket cleanup task
+    asyncio.create_task(enhanced_manager.start_cleanup_task())
 
     yield
 
     # Shutdown
     logger.info("Shutting down AffectRON API server...")
+
+    # Stop market data streaming
+    await stop_market_data_streaming()
+
+    # Close all WebSocket connections
+    for connection_id in list(enhanced_manager.active_connections.keys()):
+        await enhanced_manager.disconnect(connection_id)
 
 
 def create_application() -> FastAPI:
@@ -109,6 +139,113 @@ def create_application() -> FastAPI:
             "docs": "/docs" if settings.debug else None,
             "health": "/health"
         }
+
+    # Market data streaming status
+    @app.get("/api/v1/streaming/status", tags=["Streaming"])
+    async def get_streaming_status():
+        """Get market data streaming status."""
+        from .market_data_streamer import get_market_data_status
+
+        return get_market_data_status()
+
+    # Alert engine status
+    @app.get("/api/v1/alerts/engine/status", tags=["Alerts"])
+    async def get_alert_engine_status():
+        """Get alert engine status."""
+        return get_alert_engine_status()
+
+    # Get active alerts
+    @app.get("/api/v1/alerts/active", tags=["Alerts"])
+    async def get_active_alerts():
+        """Get all active alerts."""
+        return {
+            "alerts": [
+                {
+                    "id": alert.id,
+                    "title": alert.title,
+                    "message": alert.message,
+                    "severity": alert.severity.value,
+                    "type": alert.alert_type.value,
+                    "timestamp": alert.timestamp.isoformat(),
+                    "acknowledged": alert.acknowledged
+                }
+                for alert in alert_engine.get_active_alerts()
+            ]
+        }
+
+    # Trading platform status
+    @app.get("/api/v1/trading/status", tags=["Trading"])
+    async def get_trading_status():
+        """Get trading platform status."""
+        return get_trading_status()
+
+    # Plugin system status
+    @app.get("/api/v1/plugins/status", tags=["Plugins"])
+    async def get_plugin_status():
+        """Get plugin system status."""
+        return get_plugin_system_status()
+
+    # Marketplace status
+    @app.get("/api/v1/marketplace/status", tags=["Marketplace"])
+    async def get_marketplace_status():
+        """Get plugin marketplace status."""
+        return get_marketplace_status()
+
+    # Search marketplace plugins
+    @app.get("/api/v1/marketplace/plugins", tags=["Marketplace"])
+    async def search_marketplace_plugins(query: str = "", category: str = "", limit: int = 20):
+        """Search for plugins in marketplace."""
+        plugins = await plugin_marketplace.search_plugins(query, category, limit)
+        return {
+            "plugins": [
+                {
+                    "id": plugin.id,
+                    "name": plugin.name,
+                    "version": plugin.version,
+                    "description": plugin.description,
+                    "author": plugin.author,
+                    "rating": plugin.rating,
+                    "download_count": plugin.download_count,
+                    "categories": plugin.categories,
+                    "featured": plugin.featured,
+                    "verified": plugin.verified
+                }
+                for plugin in plugins
+            ]
+        }
+
+    # Multi-region deployment status
+    @app.get("/api/v1/deployment/status", tags=["Deployment"])
+    async def get_deployment_status():
+        """Get multi-region deployment status."""
+        return get_multi_region_status()
+
+    # Get deployment regions
+    @app.get("/api/v1/deployment/regions", tags=["Deployment"])
+    async def get_deployment_regions():
+        """Get information about deployment regions."""
+        return {
+            "regions": [
+                {
+                    "code": region.code,
+                    "name": region.name,
+                    "provider": region.provider,
+                    "timezone": region.timezone,
+                    "is_active": region.is_active,
+                    "current_instances": region.current_instances,
+                    "current_load": region.current_load,
+                    "primary_currencies": region.primary_currencies,
+                    "target_latency_ms": region.target_latency_ms
+                }
+                for region in multi_region_manager.regions.values()
+            ]
+        }
+
+    # Get deployment costs
+    @app.get("/api/v1/deployment/costs", tags=["Deployment"])
+    async def get_deployment_costs():
+        """Get deployment costs across regions."""
+        return multi_region_manager.get_deployment_costs()
 
     return app
 

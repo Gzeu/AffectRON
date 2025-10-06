@@ -7,57 +7,58 @@ import os
 from typing import List, Optional
 from functools import lru_cache
 
-from pydantic import BaseSettings, validator
+from pydantic import BaseModel, Field, validator
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     # API Settings
-    host: str = "0.0.0.0"
-    port: int = 8000
-    debug: bool = True
-    api_version: str = "v1"
+    host: str = Field(default="0.0.0.0")
+    port: int = Field(default=8000)
+    debug: bool = Field(default=True)
+    api_version: str = Field(default="v1")
 
     # Security
-    secret_key: str
-    algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
+    secret_key: str = Field(...)
+    algorithm: str = Field(default="HS256")
+    access_token_expire_minutes: int = Field(default=30)
 
     # CORS
-    cors_origins: List[str] = ["http://localhost:3000", "http://localhost:8080"]
-    allowed_hosts: List[str] = ["localhost", "127.0.0.1"]
+    cors_origins: List[str] = Field(default=["http://localhost:3000", "http://localhost:8080"])
+    allowed_hosts: List[str] = Field(default=["localhost", "127.0.0.1"])
 
     # Database
-    database_url: str
+    database_url: str = Field(...)
 
     # Redis
-    redis_url: str = "redis://localhost:6379/0"
+    redis_url: str = Field(default="redis://localhost:6379/0")
 
     # External APIs
-    twitter_bearer_token: Optional[str] = None
-    news_api_key: Optional[str] = None
-    cryptocompare_api_key: Optional[str] = None
+    twitter_bearer_token: Optional[str] = Field(default=None)
+    news_api_key: Optional[str] = Field(default=None)
+    cryptocompare_api_key: Optional[str] = Field(default=None)
 
     # AI Models
-    finbert_model_path: str = "ProsusAI/finbert"
-    sentiment_threshold: float = 0.7
-    confidence_threshold: float = 0.8
+    finbert_model_path: str = Field(default="ProsusAI/finbert")
+    sentiment_threshold: float = Field(default=0.7)
+    confidence_threshold: float = Field(default=0.8)
 
     # Data Processing
-    batch_size: int = 100
-    processing_interval_seconds: int = 300
-    data_retention_days: int = 90
+    batch_size: int = Field(default=100)
+    processing_interval_seconds: int = Field(default=300)
+    data_retention_days: int = Field(default=90)
 
     # Monitoring
-    sentry_dsn: Optional[str] = None
-    prometheus_port: int = 8000
+    sentry_dsn: Optional[str] = Field(default=None)
+    prometheus_port: int = Field(default=8000)
 
     # Feature Flags
-    enable_twitter_analysis: bool = True
-    enable_news_analysis: bool = True
-    enable_crypto_analysis: bool = True
-    enable_real_time_alerts: bool = True
+    enable_twitter_analysis: bool = Field(default=True)
+    enable_news_analysis: bool = Field(default=True)
+    enable_crypto_analysis: bool = Field(default=True)
+    enable_real_time_alerts: bool = Field(default=True)
 
     @validator('cors_origins', pre=True)
     def assemble_cors_origins(cls, v):

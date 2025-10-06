@@ -1,0 +1,7 @@
+# Test dependencies for AffectRON
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-mock==3.11.1
+httpx==0.24.1  # For async HTTP testing
+faker==19.3.0  # For generating test data
